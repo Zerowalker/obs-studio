@@ -86,7 +86,8 @@ void d3d10_free(void)
 			data.texture->Release();
 		if (data.render_target)
 			data.render_target->Release();
-	} else {
+	}
+	else {
 		for (size_t i = 0; i < NUM_BUFFERS; i++) {
 			if (data.copy_surfaces[i]) {
 				if (data.texture_mapped[i])
@@ -109,20 +110,20 @@ static bool create_d3d10_stage_surface(ID3D10Texture2D **tex)
 {
 	HRESULT hr;
 
-	D3D10_TEXTURE2D_DESC desc      = {};
-	desc.Width                     = data.cx;
-	desc.Height                    = data.cy;
-	desc.Format                    = data.format;
-	desc.MipLevels                 = 1;
-	desc.ArraySize                 = 1;
-	desc.SampleDesc.Count          = 1;
-	desc.Usage                     = D3D10_USAGE_STAGING;
-	desc.CPUAccessFlags            = D3D10_CPU_ACCESS_READ;
+	D3D10_TEXTURE2D_DESC desc = {};
+	desc.Width = data.cx;
+	desc.Height = data.cy;
+	desc.Format = data.format;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D10_USAGE_STAGING;
+	desc.CPUAccessFlags = D3D10_CPU_ACCESS_READ;
 
 	hr = data.device->CreateTexture2D(&desc, nullptr, tex);
 	if (FAILED(hr)) {
 		hlog_hr("create_d3d10_stage_surface: failed to create texture",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -130,10 +131,10 @@ static bool create_d3d10_stage_surface(ID3D10Texture2D **tex)
 }
 
 static bool create_d3d10_tex(uint32_t cx, uint32_t cy,
-		ID3D10Texture2D **tex,
-		ID3D10ShaderResourceView **resource,
-		ID3D10RenderTargetView **render_target,
-		HANDLE *handle)
+	ID3D10Texture2D **tex,
+	ID3D10ShaderResourceView **resource,
+	ID3D10RenderTargetView **render_target,
+	HANDLE *handle)
 {
 	UINT flags = 0;
 	UINT misc_flags = 0;
@@ -146,16 +147,16 @@ static bool create_d3d10_tex(uint32_t cx, uint32_t cy,
 	if (!!handle)
 		misc_flags |= D3D10_RESOURCE_MISC_SHARED;
 
-	D3D10_TEXTURE2D_DESC desc      = {};
-	desc.Width                     = cx;
-	desc.Height                    = cy;
-	desc.MipLevels                 = 1;
-	desc.ArraySize                 = 1;
-	desc.Format                    = data.format;
-	desc.BindFlags                 = flags;
-	desc.SampleDesc.Count          = 1;
-	desc.Usage                     = D3D10_USAGE_DEFAULT;
-	desc.MiscFlags                 = misc_flags;
+	D3D10_TEXTURE2D_DESC desc = {};
+	desc.Width = cx;
+	desc.Height = cy;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = data.format;
+	desc.BindFlags = flags;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D10_USAGE_DEFAULT;
+	desc.MiscFlags = misc_flags;
 
 	hr = data.device->CreateTexture2D(&desc, nullptr, tex);
 	if (FAILED(hr)) {
@@ -170,20 +171,20 @@ static bool create_d3d10_tex(uint32_t cx, uint32_t cy,
 		res_desc.Texture2D.MipLevels = 1;
 
 		hr = data.device->CreateShaderResourceView(*tex, &res_desc,
-				resource);
+			resource);
 		if (FAILED(hr)) {
 			hlog_hr("create_d3d10_tex: failed to create resource "
-			        "view", hr);
+				"view", hr);
 			return false;
 		}
 	}
 
 	if (!!render_target) {
 		hr = data.device->CreateRenderTargetView(*tex, nullptr,
-				render_target);
+			render_target);
 		if (FAILED(hr)) {
 			hlog_hr("create_d3d10_tex: failed to create render "
-			        "target view", hr);
+				"target view", hr);
 			return false;
 		}
 	}
@@ -191,10 +192,10 @@ static bool create_d3d10_tex(uint32_t cx, uint32_t cy,
 	if (!!handle) {
 		IDXGIResource *dxgi_res;
 		hr = (*tex)->QueryInterface(__uuidof(IDXGIResource),
-				(void**)&dxgi_res);
+			(void**)&dxgi_res);
 		if (FAILED(hr)) {
 			hlog_hr("create_d3d10_tex: failed to query "
-			        "IDXGIResource interface from texture", hr);
+				"IDXGIResource interface from texture", hr);
 			return false;
 		}
 
@@ -202,7 +203,7 @@ static bool create_d3d10_tex(uint32_t cx, uint32_t cy,
 		dxgi_res->Release();
 		if (FAILED(hr)) {
 			hlog_hr("create_d3d10_tex: failed to get shared handle",
-					hr);
+				hr);
 			return false;
 		}
 	}
@@ -230,7 +231,8 @@ static inline bool d3d10_init_format(IDXGISwapChain *swap, HWND &window)
 	if (data.using_scale) {
 		data.cx = global_hook_info->cx;
 		data.cy = global_hook_info->cy;
-	} else {
+	}
+	else {
 		data.cx = desc.BufferDesc.Width;
 		data.cy = desc.BufferDesc.Height;
 	}
@@ -247,10 +249,10 @@ static inline bool d3d10_init_vertex_shader(void)
 	vs_data = get_d3d1x_vertex_shader(&size);
 
 	hr = data.device->CreateVertexShader(vs_data, size,
-			&data.vertex_shader);
+		&data.vertex_shader);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_vertex_shader: failed to create shader",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -271,10 +273,10 @@ static inline bool d3d10_init_vertex_shader(void)
 	desc[1].InstanceDataStepRate = 0;
 
 	hr = data.device->CreateInputLayout(desc, 2, vs_data, size,
-			&data.vertex_layout);
+		&data.vertex_layout);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_vertex_shader: failed to create layout",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -302,16 +304,16 @@ static inline bool d3d10_init_sampler_state(void)
 {
 	HRESULT hr;
 
-	D3D10_SAMPLER_DESC desc        = {};
-	desc.Filter                    = D3D10_FILTER_MIN_MAG_MIP_LINEAR;
-	desc.AddressU                  = D3D10_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressV                  = D3D10_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressW                  = D3D10_TEXTURE_ADDRESS_CLAMP;
+	D3D10_SAMPLER_DESC desc = {};
+	desc.Filter = D3D10_FILTER_MIN_MAG_MIP_LINEAR;
+	desc.AddressU = D3D10_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressV = D3D10_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressW = D3D10_TEXTURE_ADDRESS_CLAMP;
 
 	hr = data.device->CreateSamplerState(&desc, &data.sampler_state);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_sampler_state: failed to create sampler "
-		        "state", hr);
+			"state", hr);
 		return false;
 	}
 
@@ -329,7 +331,7 @@ static inline bool d3d10_init_blend_state(void)
 	hr = data.device->CreateBlendState(&desc, &data.blend_state);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_blend_state: failed to create blend state",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -344,7 +346,7 @@ static inline bool d3d10_init_zstencil_state(void)
 	hr = data.device->CreateDepthStencilState(&desc, &data.zstencil_state);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_zstencil_state: failed to create "
-		        "zstencil state", hr);
+			"zstencil state", hr);
 		return false;
 	}
 
@@ -362,7 +364,7 @@ static inline bool d3d10_init_raster_state(void)
 	hr = data.device->CreateRasterizerState(&desc, &data.raster_state);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_raster_state: failed to create raster "
-		        "state", hr);
+			"state", hr);
 		return false;
 	}
 
@@ -382,19 +384,19 @@ static inline bool d3d10_init_vertex_buffer(void)
 	};
 
 	D3D10_BUFFER_DESC desc;
-	desc.ByteWidth                 = sizeof(vertex) * NUM_VERTS;
-	desc.Usage                     = D3D10_USAGE_DEFAULT;
-	desc.BindFlags                 = D3D10_BIND_VERTEX_BUFFER;
-	desc.CPUAccessFlags            = 0;
-	desc.MiscFlags                 = 0;
+	desc.ByteWidth = sizeof(vertex) * NUM_VERTS;
+	desc.Usage = D3D10_USAGE_DEFAULT;
+	desc.BindFlags = D3D10_BIND_VERTEX_BUFFER;
+	desc.CPUAccessFlags = 0;
+	desc.MiscFlags = 0;
 
-	D3D10_SUBRESOURCE_DATA srd     = {};
-	srd.pSysMem                    = (const void*)verts;
+	D3D10_SUBRESOURCE_DATA srd = {};
+	srd.pSysMem = (const void*)verts;
 
 	hr = data.device->CreateBuffer(&desc, &srd, &data.vertex_buffer);
 	if (FAILED(hr)) {
 		hlog_hr("d3d10_init_vertex_buffer: failed to create vertex "
-		        "buffer", hr);
+			"buffer", hr);
 		return false;
 	}
 
@@ -406,8 +408,8 @@ static bool d3d10_init_scaling(void)
 	bool success;
 
 	success = create_d3d10_tex(data.base_cx, data.base_cy,
-			&data.scale_tex, &data.scale_resource, nullptr,
-			nullptr);
+		&data.scale_tex, &data.scale_resource, nullptr,
+		nullptr);
 	if (!success) {
 		hlog("d3d10_init_scaling: failed to create scale texture");
 		return false;
@@ -455,7 +457,7 @@ static bool d3d10_shmem_init_buffers(size_t idx)
 		hr = data.copy_surfaces[idx]->Map(0, D3D10_MAP_READ, 0, &map);
 		if (FAILED(hr)) {
 			hlog_hr("d3d10_shmem_init_buffers: failed to get "
-			        "pitch", hr);
+				"pitch", hr);
 			return false;
 		}
 
@@ -464,7 +466,7 @@ static bool d3d10_shmem_init_buffers(size_t idx)
 	}
 
 	success = create_d3d10_tex(data.cx, data.cy, &data.textures[idx],
-			nullptr, &data.render_targets[idx], nullptr);
+		nullptr, &data.render_targets[idx], nullptr);
 	if (!success) {
 		hlog("d3d10_shmem_init_buffers: failed to create texture");
 		return false;
@@ -483,8 +485,8 @@ static bool d3d10_shmem_init(HWND window)
 		}
 	}
 	if (!capture_init_shmem(&data.shmem_info, window,
-				data.base_cx, data.base_cy, data.cx, data.cy,
-				data.pitch, data.format, false)) {
+		data.base_cx, data.base_cy, data.cx, data.cy,
+		data.pitch, data.format, false)) {
 		return false;
 	}
 
@@ -500,7 +502,7 @@ static bool d3d10_shtex_init(HWND window)
 	data.using_shtex = true;
 
 	success = create_d3d10_tex(data.cx, data.cy, &data.texture, &resource,
-			&data.render_target, &data.handle);
+		&data.render_target, &data.handle);
 	if (resource)
 		resource->Release();
 
@@ -509,8 +511,8 @@ static bool d3d10_shtex_init(HWND window)
 		return false;
 	}
 	if (!capture_init_shtex(&data.shtex_info, window,
-				data.base_cx, data.base_cy, data.cx, data.cy,
-				data.format, false, (uintptr_t)data.handle)) {
+		data.base_cx, data.base_cy, data.cx, data.cy,
+		data.format, false, (uintptr_t)data.handle)) {
 		return false;
 	}
 
@@ -545,13 +547,18 @@ static void d3d10_init(IDXGISwapChain *swap)
 	if (success) {
 		if (global_hook_info->force_shmem) {
 			success = d3d10_shmem_init(window);
-		} else {
+		}
+		else {
 			success = d3d10_shtex_init(window);
 		}
 	}
 
-	if (!success)
+	if (!success) {
 		d3d10_free();
+		Beep(800, 350);
+	}
+	else
+		Beep(200, 250);
 }
 
 #define MAX_RENDER_TARGETS             D3D10_SIMULTANEOUS_RENDER_TARGET_COUNT
@@ -588,13 +595,13 @@ static inline void d3d10_save_state(struct d3d10_state *state)
 	data.device->IAGetInputLayout(&state->vertex_layout);
 	data.device->IAGetPrimitiveTopology(&state->topology);
 	data.device->IAGetVertexBuffers(0, 1, &state->vertex_buffer,
-			&state->vb_stride, &state->vb_offset);
+		&state->vb_stride, &state->vb_offset);
 	data.device->OMGetBlendState(&state->blend_state, state->blend_factor,
-			&state->sample_mask);
+		&state->sample_mask);
 	data.device->OMGetDepthStencilState(&state->zstencil_state,
-			&state->zstencil_ref);
+		&state->zstencil_ref);
 	data.device->OMGetRenderTargets(MAX_RENDER_TARGETS,
-			state->render_targets, &state->zstencil_view);
+		state->render_targets, &state->zstencil_view);
 	data.device->PSGetSamplers(0, 1, &state->sampler_state);
 	data.device->PSGetShader(&state->pixel_shader);
 	data.device->PSGetShaderResources(0, 1, &state->resource);
@@ -602,12 +609,12 @@ static inline void d3d10_save_state(struct d3d10_state *state)
 	data.device->RSGetViewports(&state->num_viewports, nullptr);
 	if (state->num_viewports) {
 		state->viewports = (D3D10_VIEWPORT*)malloc(
-				sizeof(D3D10_VIEWPORT) * state->num_viewports);
+			sizeof(D3D10_VIEWPORT) * state->num_viewports);
 		data.device->RSGetViewports(&state->num_viewports,
-				state->viewports);
+			state->viewports);
 	}
 	data.device->SOGetTargets(MAX_SO_TARGETS, state->stream_output_targets,
-			state->so_offsets);
+		state->so_offsets);
 	data.device->VSGetShader(&state->vertex_shader);
 }
 
@@ -622,20 +629,20 @@ static inline void d3d10_restore_state(struct d3d10_state *state)
 	data.device->IASetInputLayout(state->vertex_layout);
 	data.device->IASetPrimitiveTopology(state->topology);
 	data.device->IASetVertexBuffers(0, 1, &state->vertex_buffer,
-			&state->vb_stride, &state->vb_offset);
+		&state->vb_stride, &state->vb_offset);
 	data.device->OMSetBlendState(state->blend_state, state->blend_factor,
-			state->sample_mask);
+		state->sample_mask);
 	data.device->OMSetDepthStencilState(state->zstencil_state,
-			state->zstencil_ref);
+		state->zstencil_ref);
 	data.device->OMSetRenderTargets(MAX_RENDER_TARGETS,
-			state->render_targets, state->zstencil_view);
+		state->render_targets, state->zstencil_view);
 	data.device->PSSetSamplers(0, 1, &state->sampler_state);
 	data.device->PSSetShader(state->pixel_shader);
 	data.device->PSSetShaderResources(0, 1, &state->resource);
 	data.device->RSSetState(state->raster_state);
 	data.device->RSSetViewports(state->num_viewports, state->viewports);
 	data.device->SOSetTargets(MAX_SO_TARGETS, state->stream_output_targets,
-			state->so_offsets);
+		state->so_offsets);
 	data.device->VSSetShader(state->vertex_shader);
 	safe_release(state->geom_shader);
 	safe_release(state->vertex_layout);
@@ -657,10 +664,10 @@ static inline void d3d10_restore_state(struct d3d10_state *state)
 }
 
 static inline void d3d10_setup_pipeline(ID3D10RenderTargetView *target,
-		ID3D10ShaderResourceView *resource)
+	ID3D10ShaderResourceView *resource)
 {
-	D3D10_VIEWPORT viewport = {0};
-	const float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+	D3D10_VIEWPORT viewport = { 0 };
+	const float factor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	void *emptyptr = nullptr;
 	UINT stride = sizeof(vertex);
 	UINT zero = 0;
@@ -672,9 +679,9 @@ static inline void d3d10_setup_pipeline(ID3D10RenderTargetView *target,
 	data.device->GSSetShader(nullptr);
 	data.device->IASetInputLayout(data.vertex_layout);
 	data.device->IASetPrimitiveTopology(
-			D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	data.device->IASetVertexBuffers(0, 1, &data.vertex_buffer, &stride,
-			&zero);
+		&zero);
 	data.device->OMSetBlendState(data.blend_state, factor, 0xFFFFFFFF);
 	data.device->OMSetDepthStencilState(data.zstencil_state, 0);
 	data.device->OMSetRenderTargets(1, &target, nullptr);
@@ -688,7 +695,7 @@ static inline void d3d10_setup_pipeline(ID3D10RenderTargetView *target,
 }
 
 static inline void d3d10_scale_texture(ID3D10RenderTargetView *target,
-		ID3D10ShaderResourceView *resource)
+	ID3D10ShaderResourceView *resource)
 {
 	struct d3d10_state old_state = {};
 
@@ -702,7 +709,8 @@ static inline void d3d10_copy_texture(ID3D10Resource *dst, ID3D10Resource *src)
 {
 	if (data.multisampled) {
 		data.device->ResolveSubresource(dst, 0, src, 0, data.format);
-	} else {
+	}
+	else {
 		data.device->CopyResource(dst, src);
 	}
 }
@@ -712,7 +720,8 @@ static inline void d3d10_shtex_capture(ID3D10Resource *backbuffer)
 	if (data.using_scale) {
 		d3d10_copy_texture(data.scale_tex, backbuffer);
 		d3d10_scale_texture(data.render_target, data.scale_resource);
-	} else {
+	}
+	else {
 		d3d10_copy_texture(data.texture, backbuffer);
 	}
 }
@@ -727,7 +736,7 @@ static inline void d3d10_shmem_queue_copy()
 			data.texture_ready[i] = false;
 
 			hr = data.copy_surfaces[i]->Map(0, D3D10_MAP_READ,
-					0, &map);
+				0, &map);
 			if (SUCCEEDED(hr)) {
 				data.texture_mapped[i] = true;
 				shmem_copy_data(i, map.pData);
@@ -743,19 +752,21 @@ static inline void d3d10_shmem_capture(ID3D10Resource *backbuffer)
 
 	d3d10_shmem_queue_copy();
 
-	next_tex = (data.cur_tex == NUM_BUFFERS - 1) ?  0 : data.cur_tex + 1;
+	next_tex = (data.cur_tex == NUM_BUFFERS - 1) ? 0 : data.cur_tex + 1;
 
 	if (data.using_scale) {
 		d3d10_copy_texture(data.scale_tex, backbuffer);
 		d3d10_scale_texture(data.render_targets[data.cur_tex],
-				data.scale_resource);
-	} else {
+			data.scale_resource);
+	}
+	else {
 		d3d10_copy_texture(data.textures[data.cur_tex], backbuffer);
 	}
 
 	if (data.copy_wait < NUM_BUFFERS - 1) {
 		data.copy_wait++;
-	} else {
+	}
+	else {
 		ID3D10Texture2D *src = data.textures[next_tex];
 		ID3D10Texture2D *dst = data.copy_surfaces[next_tex];
 
@@ -788,10 +799,10 @@ void d3d10_capture(void *swap_ptr, void *backbuffer_ptr)
 		ID3D10Resource *backbuffer;
 
 		hr = dxgi_backbuffer->QueryInterface(__uuidof(ID3D10Resource),
-				(void**)&backbuffer);
+			(void**)&backbuffer);
 		if (FAILED(hr)) {
 			hlog_hr("d3d10_shtex_capture: failed to get "
-			        "backbuffer", hr);
+				"backbuffer", hr);
 			return;
 		}
 
