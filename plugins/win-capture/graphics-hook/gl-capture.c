@@ -18,9 +18,9 @@
 #define DUMMY_WINDOW_CLASS_NAME L"graphics_hook_gl_dummy_window"
 
 static const GUID GUID_IDXGIFactory1 =
-{0x770aae78, 0xf26f, 0x4dba, {0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87}};
+{ 0x770aae78, 0xf26f, 0x4dba, {0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87} };
 static const GUID GUID_IDXGIResource =
-{0x035f3ab4, 0x482e, 0x4e50, {0xb4, 0x1f, 0x8a, 0x7f, 0x8b, 0xd8, 0x96, 0x0b}};
+{ 0x035f3ab4, 0x482e, 0x4e50, {0xb4, 0x1f, 0x8a, 0x7f, 0x8b, 0xd8, 0x96, 0x0b} };
 
 static struct func_hook swap_buffers;
 static struct func_hook wgl_swap_layer_buffers;
@@ -70,7 +70,7 @@ struct gl_data {
 
 static HMODULE gl = NULL;
 static bool nv_capture_available = false;
-static struct gl_data data = {0};
+static struct gl_data data = { 0 };
 
 static inline bool gl_error(const char *func, const char *str)
 {
@@ -90,7 +90,7 @@ static void gl_free(void)
 	if (data.using_shtex) {
 		if (data.gl_dxobj)
 			jimglDXUnregisterObjectNV(data.gl_device,
-					data.gl_dxobj);
+				data.gl_dxobj);
 		if (data.gl_device)
 			jimglDXCloseDeviceNV(data.gl_device);
 		if (data.texture)
@@ -105,12 +105,13 @@ static void gl_free(void)
 			IDXGISwapChain_Release(data.dxgi_swap);
 		if (data.hwnd)
 			DestroyWindow(data.hwnd);
-	} else {
+	}
+	else {
 		for (size_t i = 0; i < NUM_BUFFERS; i++) {
 			if (data.pbos[i]) {
 				if (data.texture_mapped[i]) {
 					glBindBuffer(GL_PIXEL_PACK_BUFFER,
-							data.pbos[i]);
+						data.pbos[i]);
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 					glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				}
@@ -201,7 +202,7 @@ static bool init_gl_functions(void)
 	GET_PROC(init_gl_functions, jimglMakeCurrent, wglMakeCurrent);
 	GET_PROC(init_gl_functions, jimglGetCurrentDC, wglGetCurrentDC);
 	GET_PROC(init_gl_functions, jimglGetCurrentContext,
-			wglGetCurrentContext);
+		wglGetCurrentContext);
 	GET_PROC(init_gl_functions, glTexImage2D, glTexImage2D);
 	GET_PROC(init_gl_functions, glReadBuffer, glReadBuffer);
 	GET_PROC(init_gl_functions, glGetTexImage, glGetTexImage);
@@ -222,7 +223,7 @@ static bool init_gl_functions(void)
 	GET_PROC(init_gl_functions, glBindFramebuffer, glBindFramebuffer);
 	GET_PROC(init_gl_functions, glBlitFramebuffer, glBlitFramebuffer);
 	GET_PROC(init_gl_functions, glFramebufferTexture2D,
-			glFramebufferTexture2D);
+		glFramebufferTexture2D);
 
 	init_nv_functions();
 	return success;
@@ -231,12 +232,13 @@ static bool init_gl_functions(void)
 static void get_window_size(HDC hdc, uint32_t *cx, uint32_t *cy)
 {
 	HWND hwnd = WindowFromDC(hdc);
-        RECT rc = {0};
+	RECT rc = { 0 };
 
 	if (darkest_dungeon_fix) {
 		*cx = 1920;
 		*cy = 1080;
-	} else {
+	}
+	else {
 		GetClientRect(hwnd, &rc);
 		*cx = rc.right;
 		*cy = rc.bottom;
@@ -246,19 +248,19 @@ static void get_window_size(HDC hdc, uint32_t *cx, uint32_t *cy)
 static inline bool gl_shtex_init_window(void)
 {
 	data.hwnd = CreateWindowExW(0, DUMMY_WINDOW_CLASS_NAME,
-			L"Dummy GL window, ignore",
-			WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
-			0, 0, 2, 2, NULL, NULL, GetModuleHandle(NULL), NULL);
+		L"Dummy GL window, ignore",
+		WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+		0, 0, 2, 2, NULL, NULL, GetModuleHandle(NULL), NULL);
 	if (!data.hwnd) {
 		hlog("gl_shtex_init_window: failed to create window: %d",
-				GetLastError());
+			GetLastError());
 		return false;
 	}
 
 	return true;
 }
 
-typedef HRESULT (WINAPI *create_dxgi_factory1_t)(REFIID, void **);
+typedef HRESULT(WINAPI *create_dxgi_factory1_t)(REFIID, void **);
 
 static const D3D_FEATURE_LEVEL feature_levels[] =
 {
@@ -278,41 +280,41 @@ static inline bool gl_shtex_init_d3d11(void)
 	HMODULE d3d11 = load_system_library("d3d11.dll");
 	if (!d3d11) {
 		hlog("gl_shtex_init_d3d11: failed to load D3D11.dll: %d",
-				GetLastError());
+			GetLastError());
 		return false;
 	}
 
 	HMODULE dxgi = load_system_library("dxgi.dll");
 	if (!dxgi) {
 		hlog("gl_shtex_init_d3d11: failed to load DXGI.dll: %d",
-				GetLastError());
+			GetLastError());
 		return false;
 	}
 
-	DXGI_SWAP_CHAIN_DESC desc      = {0};
-	desc.BufferCount               = 2;
-	desc.BufferDesc.Format         = DXGI_FORMAT_B8G8R8A8_UNORM;
-	desc.BufferDesc.Width          = 2;
-	desc.BufferDesc.Height         = 2;
-	desc.BufferUsage               = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	desc.SampleDesc.Count          = 1;
-	desc.Windowed                  = true;
-	desc.OutputWindow              = data.hwnd;
+	DXGI_SWAP_CHAIN_DESC desc = { 0 };
+	desc.BufferCount = 2;
+	desc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	desc.BufferDesc.Width = 2;
+	desc.BufferDesc.Height = 2;
+	desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	desc.SampleDesc.Count = 1;
+	desc.Windowed = true;
+	desc.OutputWindow = data.hwnd;
 
 	create_dxgi_factory1_t create_factory = (void*)GetProcAddress(dxgi,
-			"CreateDXGIFactory1");
+		"CreateDXGIFactory1");
 	if (!create_factory) {
 		hlog("gl_shtex_init_d3d11: failed to load CreateDXGIFactory1 "
-		     "procedure: %d", GetLastError());
+			"procedure: %d", GetLastError());
 		return false;
 	}
 
 	PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create = (void*)GetProcAddress(
-			d3d11, "D3D11CreateDeviceAndSwapChain");
+		d3d11, "D3D11CreateDeviceAndSwapChain");
 	if (!create) {
 		hlog("gl_shtex_init_d3d11: failed to load "
-		     "D3D11CreateDeviceAndSwapChain procedure: %d",
-		     GetLastError());
+			"D3D11CreateDeviceAndSwapChain procedure: %d",
+			GetLastError());
 		return false;
 	}
 
@@ -331,9 +333,9 @@ static inline bool gl_shtex_init_d3d11(void)
 	}
 
 	hr = create(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, feature_levels,
-			sizeof(feature_levels) / sizeof(D3D_FEATURE_LEVEL),
-			D3D11_SDK_VERSION, &desc, &data.dxgi_swap,
-			&data.d3d11_device, &level_used, &data.d3d11_context);
+		sizeof(feature_levels) / sizeof(D3D_FEATURE_LEVEL),
+		D3D11_SDK_VERSION, &desc, &data.dxgi_swap,
+		&data.d3d11_device, &level_used, &data.d3d11_context);
 	IDXGIAdapter_Release(adapter);
 
 	if (FAILED(hr)) {
@@ -349,31 +351,31 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 	IDXGIResource *dxgi_res;
 	HRESULT hr;
 
-	D3D11_TEXTURE2D_DESC desc      = {0};
-	desc.Width                     = data.cx;
-	desc.Height                    = data.cy;
-	desc.MipLevels                 = 1;
-	desc.ArraySize                 = 1;
-	desc.Format                    = DXGI_FORMAT_B8G8R8A8_UNORM;
-	desc.SampleDesc.Count          = 1;
-	desc.Usage                     = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags                 = D3D11_RESOURCE_MISC_SHARED;
-	desc.BindFlags                 = D3D11_BIND_RENDER_TARGET |
-	                                 D3D11_BIND_SHADER_RESOURCE;
+	D3D11_TEXTURE2D_DESC desc = { 0 };
+	desc.Width = data.cx;
+	desc.Height = data.cy;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET |
+		D3D11_BIND_SHADER_RESOURCE;
 
 	hr = ID3D11Device_CreateTexture2D(data.d3d11_device, &desc, NULL,
-			&data.d3d11_tex);
+		&data.d3d11_tex);
 	if (FAILED(hr)) {
 		hlog_hr("gl_shtex_init_d3d11_tex: failed to create texture",
-				hr);
+			hr);
 		return false;
 	}
 
 	hr = ID3D11Device_QueryInterface(data.d3d11_tex,
-			&GUID_IDXGIResource, (void**)&dxgi_res);
+		&GUID_IDXGIResource, (void**)&dxgi_res);
 	if (FAILED(hr)) {
 		hlog_hr("gl_shtex_init_d3d11_tex: failed to get IDXGIResource",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -382,7 +384,7 @@ static inline bool gl_shtex_init_d3d11_tex(void)
 
 	if (FAILED(hr)) {
 		hlog_hr("gl_shtex_init_d3d11_tex: failed to get shared handle",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -403,8 +405,8 @@ static inline bool gl_shtex_init_gl_tex(void)
 	}
 
 	data.gl_dxobj = jimglDXRegisterObjectNV(data.gl_device, data.d3d11_tex,
-			data.texture, GL_TEXTURE_2D,
-			WGL_ACCESS_WRITE_DISCARD_NV);
+		data.texture, GL_TEXTURE_2D,
+		WGL_ACCESS_WRITE_DISCARD_NV);
 	if (!data.gl_dxobj) {
 		hlog("gl_shtex_init_gl_tex: failed to register object");
 		return false;
@@ -437,8 +439,8 @@ static bool gl_shtex_init(HWND window)
 		return false;
 	}
 	if (!capture_init_shtex(&data.shtex_info, window,
-				data.base_cx, data.base_cy, data.cx, data.cy,
-				data.format, true, (uintptr_t)data.handle)) {
+		data.base_cx, data.base_cy, data.cx, data.cy,
+		data.format, true, (uintptr_t)data.handle)) {
 		return false;
 	}
 
@@ -464,7 +466,7 @@ static inline bool gl_shmem_init_data(size_t idx, size_t size)
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data.cx, data.cy,
-			0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+		0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 	if (gl_error("gl_shmem_init_data", "failed to set texture data")) {
 		return false;
 	}
@@ -490,7 +492,7 @@ static inline bool gl_shmem_init_buffers(void)
 
 	glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &last_pbo);
 	if (gl_error("gl_shmem_init_buffers",
-				"failed to save pixel pack buffer")) {
+		"failed to save pixel pack buffer")) {
 		return false;
 	}
 
@@ -519,8 +521,8 @@ static bool gl_shmem_init(HWND window)
 		return false;
 	}
 	if (!capture_init_shmem(&data.shmem_info, window,
-				data.base_cx, data.base_cy, data.cx, data.cy,
-				data.cx * 4, data.format, true)) {
+		data.base_cx, data.base_cy, data.cx, data.cy,
+		data.cx * 4, data.format, true)) {
 		return false;
 	}
 
@@ -537,12 +539,13 @@ static int gl_init(HDC hdc)
 	HWND window = WindowFromDC(hdc);
 	int ret = INIT_FAILED;
 	bool success = false;
-	RECT rc = {0};
+	RECT rc = { 0 };
 
 	if (darkest_dungeon_fix) {
 		data.base_cx = 1920;
 		data.base_cy = 1080;
-	} else {
+	}
+	else {
 		GetClientRect(window, &rc);
 		data.base_cx = rc.right;
 		data.base_cy = rc.bottom;
@@ -558,7 +561,8 @@ static int gl_init(HDC hdc)
 	if (data.using_scale) {
 		data.cx = global_hook_info->cx;
 		data.cy = global_hook_info->cy;
-	} else {
+	}
+	else {
 		data.cx = data.base_cx;
 		data.cy = data.base_cy;
 	}
@@ -567,14 +571,19 @@ static int gl_init(HDC hdc)
 		success = gl_shtex_init(window);
 		if (!success)
 			ret = INIT_SHTEX_FAILED;
-	} else {
+	}
+	else {
 		success = gl_shmem_init(window);
 	}
 
-	if (!success)
+	if (!success) {
 		gl_free();
-	else
+		Beep(800, 350);
+	}
+	else {
+		Beep(200, 250);
 		ret = INIT_SUCCESS;
+	}
 
 	return ret;
 }
@@ -592,7 +601,7 @@ static void gl_copy_backbuffer(GLuint dst)
 	}
 
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			GL_TEXTURE_2D, dst, 0);
+		GL_TEXTURE_2D, dst, 0);
 	if (gl_error("gl_copy_backbuffer", "failed to set frame buffer")) {
 		return;
 	}
@@ -610,7 +619,7 @@ static void gl_copy_backbuffer(GLuint dst)
 	}
 
 	glBlitFramebuffer(0, 0, data.base_cx, data.base_cy,
-			0, 0, data.cx, data.cy, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		0, 0, data.cx, data.cy, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	gl_error("gl_copy_backbuffer", "failed to blit");
 }
 
@@ -651,7 +660,7 @@ static inline void gl_shmem_capture_queue_copy(void)
 
 			glBindBuffer(GL_PIXEL_PACK_BUFFER, data.pbos[i]);
 			if (gl_error("gl_shmem_capture_queue_copy",
-						"failed to bind pbo")) {
+				"failed to bind pbo")) {
 				return;
 			}
 
@@ -707,7 +716,8 @@ static void gl_shmem_capture(void)
 
 	if (data.copy_wait < NUM_BUFFERS - 1) {
 		data.copy_wait++;
-	} else {
+	}
+	else {
 		GLuint src = data.textures[next_tex];
 		GLuint dst = data.pbos[next_tex];
 
@@ -781,7 +791,7 @@ static BOOL WINAPI hook_swap_buffers(HDC hdc)
 		gl_capture(hdc);
 
 	unhook(&swap_buffers);
-	BOOL (WINAPI *call)(HDC) = swap_buffers.call_addr;
+	BOOL(WINAPI *call)(HDC) = swap_buffers.call_addr;
 	ret = call(hdc);
 	rehook(&swap_buffers);
 
@@ -799,7 +809,7 @@ static BOOL WINAPI hook_wgl_swap_buffers(HDC hdc)
 		gl_capture(hdc);
 
 	unhook(&wgl_swap_buffers);
-	BOOL (WINAPI *call)(HDC) = wgl_swap_buffers.call_addr;
+	BOOL(WINAPI *call)(HDC) = wgl_swap_buffers.call_addr;
 	ret = call(hdc);
 	rehook(&wgl_swap_buffers);
 
@@ -817,7 +827,7 @@ static BOOL WINAPI hook_wgl_swap_layer_buffers(HDC hdc, UINT planes)
 		gl_capture(hdc);
 
 	unhook(&wgl_swap_layer_buffers);
-	BOOL (WINAPI *call)(HDC, UINT) = wgl_swap_layer_buffers.call_addr;
+	BOOL(WINAPI *call)(HDC, UINT) = wgl_swap_layer_buffers.call_addr;
 	ret = call(hdc, planes);
 	rehook(&wgl_swap_layer_buffers);
 
@@ -841,7 +851,7 @@ static BOOL WINAPI hook_wgl_delete_context(HGLRC hrc)
 	}
 
 	unhook(&wgl_delete_context);
-	BOOL (WINAPI *call)(HGLRC) = wgl_delete_context.call_addr;
+	BOOL(WINAPI *call)(HGLRC) = wgl_delete_context.call_addr;
 	ret = call(hrc);
 	rehook(&wgl_delete_context);
 
@@ -850,7 +860,7 @@ static BOOL WINAPI hook_wgl_delete_context(HGLRC hrc)
 
 static bool gl_register_window(void)
 {
-	WNDCLASSW wc = {0};
+	WNDCLASSW wc = { 0 };
 	wc.style = CS_OWNDC;
 	wc.hInstance = GetModuleHandle(NULL);
 	wc.lpfnWndProc = DefWindowProc;
@@ -858,7 +868,7 @@ static bool gl_register_window(void)
 
 	if (!RegisterClassW(&wc)) {
 		hlog("gl_register_window: failed to register window class: %d",
-				GetLastError());
+			GetLastError());
 		return false;
 	}
 
@@ -887,20 +897,20 @@ bool hook_gl(void)
 	hook_init(&swap_buffers, SwapBuffers, hook_swap_buffers, "SwapBuffers");
 	if (wgl_dc_proc) {
 		hook_init(&wgl_delete_context, wgl_dc_proc,
-				hook_wgl_delete_context,
-				"wglDeleteContext");
+			hook_wgl_delete_context,
+			"wglDeleteContext");
 		rehook(&wgl_delete_context);
 	}
 	if (wgl_slb_proc) {
 		hook_init(&wgl_swap_layer_buffers, wgl_slb_proc,
-				hook_wgl_swap_layer_buffers,
-				"wglSwapLayerBuffers");
+			hook_wgl_swap_layer_buffers,
+			"wglSwapLayerBuffers");
 		rehook(&wgl_swap_layer_buffers);
 	}
 	if (wgl_sb_proc) {
 		hook_init(&wgl_swap_buffers, wgl_sb_proc,
-				hook_wgl_swap_buffers,
-				"wglSwapBuffers");
+			hook_wgl_swap_buffers,
+			"wglSwapBuffers");
 		rehook(&wgl_swap_buffers);
 	}
 

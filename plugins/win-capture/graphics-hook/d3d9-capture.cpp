@@ -7,18 +7,18 @@
 #include "../funchook.h"
 #include "d3d9-patches.hpp"
 
-typedef HRESULT (STDMETHODCALLTYPE *present_t)(IDirect3DDevice9*,
-		CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*);
-typedef HRESULT (STDMETHODCALLTYPE *present_ex_t)(IDirect3DDevice9*,
-		CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*, DWORD);
-typedef HRESULT (STDMETHODCALLTYPE *present_swap_t)(IDirect3DSwapChain9*,
-		CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*, DWORD);
-typedef HRESULT (STDMETHODCALLTYPE *reset_t)(IDirect3DDevice9*,
-		D3DPRESENT_PARAMETERS*);
-typedef HRESULT (STDMETHODCALLTYPE *reset_ex_t)(IDirect3DDevice9*,
-		D3DPRESENT_PARAMETERS*, D3DDISPLAYMODEEX*);
+typedef HRESULT(STDMETHODCALLTYPE *present_t)(IDirect3DDevice9*,
+	CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*);
+typedef HRESULT(STDMETHODCALLTYPE *present_ex_t)(IDirect3DDevice9*,
+	CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*, DWORD);
+typedef HRESULT(STDMETHODCALLTYPE *present_swap_t)(IDirect3DSwapChain9*,
+	CONST RECT*, CONST RECT*, HWND, CONST RGNDATA*, DWORD);
+typedef HRESULT(STDMETHODCALLTYPE *reset_t)(IDirect3DDevice9*,
+	D3DPRESENT_PARAMETERS*);
+typedef HRESULT(STDMETHODCALLTYPE *reset_ex_t)(IDirect3DDevice9*,
+	D3DPRESENT_PARAMETERS*, D3DDISPLAYMODEEX*);
 
-typedef HRESULT (WINAPI *createfactory1_t)(REFIID, void **);
+typedef HRESULT(WINAPI *createfactory1_t)(REFIID, void **);
 
 static struct func_hook present;
 static struct func_hook present_ex;
@@ -77,7 +77,8 @@ static void d3d9_free()
 			data.d3d11_device->Release();
 		if (data.d3d9_copytex)
 			data.d3d9_copytex->Release();
-	} else {
+	}
+	else {
 		for (size_t i = 0; i < NUM_BUFFERS; i++) {
 			if (data.copy_surfaces[i]) {
 				if (data.texture_mapped[i])
@@ -139,14 +140,14 @@ static inline bool shex_init_d3d11()
 	}
 
 	create_factory = (createfactory1_t)GetProcAddress(dxgi,
-			"CreateDXGIFactory1");
+		"CreateDXGIFactory1");
 	if (!create_factory) {
 		hlog("d3d9_init: Failed to get CreateDXGIFactory1 address");
 		return false;
 	}
 
 	create_device = (PFN_D3D11_CREATE_DEVICE)GetProcAddress(d3d11,
-			"D3D11CreateDevice");
+		"D3D11CreateDevice");
 	if (!create_device) {
 		hlog("d3d9_init: Failed to get D3D11CreateDevice address");
 		return false;
@@ -167,10 +168,10 @@ static inline bool shex_init_d3d11()
 	}
 
 	hr = create_device(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr,
-			0, feature_levels,
-			sizeof(feature_levels) / sizeof(D3D_FEATURE_LEVEL),
-			D3D11_SDK_VERSION, &data.d3d11_device, &level_used,
-			&data.d3d11_context);
+		0, feature_levels,
+		sizeof(feature_levels) / sizeof(D3D_FEATURE_LEVEL),
+		D3D11_SDK_VERSION, &data.d3d11_device, &level_used,
+		&data.d3d11_context);
 	adapter->Release();
 
 	if (FAILED(hr)) {
@@ -187,30 +188,30 @@ static inline bool d3d9_shtex_init_shtex()
 	HRESULT hr;
 
 	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width                = data.cx;
-	desc.Height               = data.cy;
-	desc.Format               = data.dxgi_format;
-	desc.MipLevels            = 1;
-	desc.ArraySize            = 1;
-	desc.SampleDesc.Count     = 1;
-	desc.Usage                = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags            = D3D11_RESOURCE_MISC_SHARED;
-	desc.BindFlags            = D3D11_BIND_RENDER_TARGET |
-	                            D3D11_BIND_SHADER_RESOURCE;
+	desc.Width = data.cx;
+	desc.Height = data.cy;
+	desc.Format = data.dxgi_format;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET |
+		D3D11_BIND_SHADER_RESOURCE;
 
 	hr = data.d3d11_device->CreateTexture2D(&desc, nullptr,
-			(ID3D11Texture2D**)&data.d3d11_tex);
+		(ID3D11Texture2D**)&data.d3d11_tex);
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shtex_init_shtex: Failed to create D3D11 texture",
-				hr);
+			hr);
 		return false;
 	}
 
 	hr = data.d3d11_tex->QueryInterface(__uuidof(IDXGIResource),
-			(void**)&res);
+		(void**)&res);
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shtex_init_shtex: Failed to query IDXGIResource",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -219,7 +220,7 @@ static inline bool d3d9_shtex_init_shtex()
 
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shtex_init_shtex: Failed to get shared handle",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -238,24 +239,24 @@ static inline bool d3d9_shtex_init_copytex()
 	if (patch_addr) {
 		patch_size = patch[data.patch].size;
 		VirtualProtect(patch_addr, patch_size, PAGE_EXECUTE_READWRITE,
-				&protect_val);
+			&protect_val);
 		memcpy(saved_data, patch_addr, patch_size);
 		memcpy(patch_addr, patch[data.patch].data, patch_size);
 	}
 
 	hr = data.device->CreateTexture(data.cx, data.cy, 1,
-			D3DUSAGE_RENDERTARGET, data.d3d9_format,
-			D3DPOOL_DEFAULT, &tex, &data.handle);
+		D3DUSAGE_RENDERTARGET, data.d3d9_format,
+		D3DPOOL_DEFAULT, &tex, &data.handle);
 
 	if (patch_addr && patch_size) {
 		memcpy(patch_addr, saved_data, patch_size);
 		VirtualProtect(patch_addr, patch_size, protect_val,
-				&protect_val);
+			&protect_val);
 	}
 
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shtex_init_copytex: Failed to create shared texture",
-				hr);
+			hr);
 		return false;
 	}
 
@@ -284,8 +285,8 @@ static bool d3d9_shtex_init(uint32_t cx, uint32_t cy, HWND window)
 		return false;
 	}
 	if (!capture_init_shtex(&data.shtex_info, window, cx, cy,
-				data.cx, data.cy, data.dxgi_format, false,
-				(uintptr_t)data.handle)) {
+		data.cx, data.cy, data.dxgi_format, false,
+		(uintptr_t)data.handle)) {
 		return false;
 	}
 
@@ -298,39 +299,39 @@ static bool d3d9_shmem_init_buffers(size_t buffer)
 	HRESULT hr;
 
 	hr = data.device->CreateOffscreenPlainSurface(data.cx, data.cy,
-			data.d3d9_format, D3DPOOL_SYSTEMMEM,
-			&data.copy_surfaces[buffer], nullptr);
+		data.d3d9_format, D3DPOOL_SYSTEMMEM,
+		&data.copy_surfaces[buffer], nullptr);
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shmem_init_buffers: Failed to create surface",
-				hr);
+			hr);
 		return false;
 	}
 
 	if (buffer == 0) {
 		D3DLOCKED_RECT rect;
 		hr = data.copy_surfaces[buffer]->LockRect(&rect, nullptr,
-				D3DLOCK_READONLY);
+			D3DLOCK_READONLY);
 		if (FAILED(hr)) {
 			hlog_hr("d3d9_shmem_init_buffers: Failed to lock "
-			        "buffer", hr);
+				"buffer", hr);
 			return false;
 		}
 
 		data.pitch = rect.Pitch;
 		data.copy_surfaces[buffer]->UnlockRect();
-	}	
+	}
 
 	hr = data.device->CreateRenderTarget(data.cx, data.cy,
-			data.d3d9_format, D3DMULTISAMPLE_NONE, 0, false,
-			&data.render_targets[buffer], nullptr);
+		data.d3d9_format, D3DMULTISAMPLE_NONE, 0, false,
+		&data.render_targets[buffer], nullptr);
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shmem_init_buffers: Failed to create render "
-		        "target", hr);
+			"target", hr);
 		return false;
 	}
 
 	hr = data.device->CreateQuery(D3DQUERYTYPE_EVENT,
-			&data.queries[buffer]);
+		&data.queries[buffer]);
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shmem_init_buffers: Failed to create query", hr);
 		return false;
@@ -349,8 +350,8 @@ static bool d3d9_shmem_init(uint32_t cx, uint32_t cy, HWND window)
 		}
 	}
 	if (!capture_init_shmem(&data.shmem_info, window, cx, cy,
-				data.cx, data.cy, data.pitch, data.dxgi_format,
-				false)) {
+		data.cx, data.cy, data.pitch, data.dxgi_format,
+		false)) {
 		return false;
 	}
 
@@ -374,7 +375,7 @@ static bool d3d9_get_swap_desc(D3DPRESENT_PARAMETERS &pp)
 
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_get_swap_desc: Failed to get "
-		        "presentation parameters", hr);
+			"presentation parameters", hr);
 		return false;
 	}
 
@@ -382,7 +383,7 @@ static bool d3d9_get_swap_desc(D3DPRESENT_PARAMETERS &pp)
 }
 
 static bool d3d9_init_format_backbuffer(uint32_t &cx, uint32_t &cy,
-		HWND &window)
+	HWND &window)
 {
 	IDirect3DSurface9 *back_buffer = nullptr;
 	D3DPRESENT_PARAMETERS pp;
@@ -403,7 +404,7 @@ static bool d3d9_init_format_backbuffer(uint32_t &cx, uint32_t &cy,
 
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_init_format_backbuffer: Failed to get "
-		        "backbuffer descriptor", hr);
+			"backbuffer descriptor", hr);
 		return false;
 	}
 
@@ -417,7 +418,8 @@ static bool d3d9_init_format_backbuffer(uint32_t &cx, uint32_t &cy,
 	if (data.using_scale) {
 		data.cx = global_hook_info->cx;
 		data.cy = global_hook_info->cy;
-	} else {
+	}
+	else {
 		data.cx = desc.Width;
 		data.cy = desc.Height;
 	}
@@ -443,7 +445,8 @@ static bool d3d9_init_format_swapchain(uint32_t &cx, uint32_t &cy, HWND &window)
 	if (data.using_scale) {
 		data.cx = global_hook_info->cx;
 		data.cy = global_hook_info->cy;
-	} else {
+	}
+	else {
 		data.cx = pp.BackBufferWidth;
 		data.cy = pp.BackBufferHeight;
 	}
@@ -464,11 +467,12 @@ static void d3d9_init(IDirect3DDevice9 *device)
 	data.device = device;
 
 	hr = device->QueryInterface(__uuidof(IDirect3DDevice9Ex),
-			(void**)&d3d9ex);
+		(void**)&d3d9ex);
 	if (SUCCEEDED(hr)) {
 		d3d9ex->Release();
 		data.patch = -1;
-	} else {
+	}
+	else {
 		data.patch = get_d3d9_patch(data.d3d9);
 	}
 
@@ -480,16 +484,21 @@ static void d3d9_init(IDirect3DDevice9 *device)
 
 	if (global_hook_info->force_shmem || (!d3d9ex && data.patch == -1)) {
 		success = d3d9_shmem_init(cx, cy, window);
-	} else {
+	}
+	else {
 		success = d3d9_shtex_init(cx, cy, window);
 	}
 
-	if (!success)
+	if (!success) {
 		d3d9_free();
+		Beep(800, 350);
+	}
+	else
+		Beep(200, 250);
 }
 
 static inline HRESULT get_backbuffer(IDirect3DDevice9 *device,
-		IDirect3DSurface9 **surface)
+	IDirect3DSurface9 **surface)
 {
 	static bool use_backbuffer = false;
 	static bool checked_exceptions = false;
@@ -502,8 +511,9 @@ static inline HRESULT get_backbuffer(IDirect3DDevice9 *device,
 
 	if (use_backbuffer) {
 		return device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO,
-				surface);
-	} else {
+			surface);
+	}
+	else {
 		return device->GetRenderTarget(0, surface);
 	}
 }
@@ -516,7 +526,7 @@ static inline void d3d9_shtex_capture(IDirect3DSurface9 *backbuffer)
 	filter = data.using_scale ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
 	hr = data.device->StretchRect(backbuffer, nullptr, data.d3d9_copytex,
-			nullptr, filter);
+		nullptr, filter);
 	if (FAILED(hr))
 		hlog_hr("d3d9_shtex_capture: StretchRect failed", hr);
 }
@@ -555,12 +565,12 @@ static inline void d3d9_shmem_capture(IDirect3DSurface9 *backbuffer)
 
 	d3d9_shmem_capture_queue_copy();
 
-	next_tex = (data.cur_tex == NUM_BUFFERS - 1) ?  0 : data.cur_tex + 1;
+	next_tex = (data.cur_tex == NUM_BUFFERS - 1) ? 0 : data.cur_tex + 1;
 	filter = data.using_scale ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 	copy = data.render_targets[data.cur_tex];
 
 	hr = data.device->StretchRect(backbuffer, nullptr, copy, nullptr,
-			filter);
+		filter);
 
 	if (FAILED(hr)) {
 		hlog_hr("d3d9_shmem_capture: StretchRect failed", hr);
@@ -569,7 +579,8 @@ static inline void d3d9_shmem_capture(IDirect3DSurface9 *backbuffer)
 
 	if (data.copy_wait < NUM_BUFFERS - 1) {
 		data.copy_wait++;
-	} else {
+	}
+	else {
 		IDirect3DSurface9 *src = data.render_targets[next_tex];
 		IDirect3DSurface9 *dst = data.copy_surfaces[next_tex];
 
@@ -582,7 +593,7 @@ static inline void d3d9_shmem_capture(IDirect3DSurface9 *backbuffer)
 		hr = data.device->GetRenderTargetData(src, dst);
 		if (FAILED(hr)) {
 			hlog_hr("d3d9_shmem_capture: GetRenderTargetData "
-			        "failed", hr);
+				"failed", hr);
 		}
 
 		data.queries[next_tex]->Issue(D3DISSUE_END);
@@ -593,7 +604,7 @@ static inline void d3d9_shmem_capture(IDirect3DSurface9 *backbuffer)
 }
 
 static void d3d9_capture(IDirect3DDevice9 *device,
-		IDirect3DSurface9 *backbuffer)
+	IDirect3DSurface9 *backbuffer)
 {
 	if (capture_should_stop()) {
 		d3d9_free();
@@ -613,7 +624,7 @@ static void d3d9_capture(IDirect3DDevice9 *device,
 static int present_recurse = 0;
 
 static inline void present_begin(IDirect3DDevice9 *device,
-		IDirect3DSurface9 *&backbuffer)
+	IDirect3DSurface9 *&backbuffer)
 {
 	HRESULT hr;
 
@@ -633,7 +644,7 @@ static inline void present_begin(IDirect3DDevice9 *device,
 }
 
 static inline void present_end(IDirect3DDevice9 *device,
-		IDirect3DSurface9 *backbuffer)
+	IDirect3DSurface9 *backbuffer)
 {
 	present_recurse--;
 
@@ -652,8 +663,8 @@ static bool hooked_reset = false;
 static void setup_reset_hooks(IDirect3DDevice9 *device);
 
 static HRESULT STDMETHODCALLTYPE hook_present(IDirect3DDevice9 *device,
-		CONST RECT *src_rect, CONST RECT *dst_rect,
-		HWND override_window, CONST RGNDATA *dirty_region)
+	CONST RECT *src_rect, CONST RECT *dst_rect,
+	HWND override_window, CONST RGNDATA *dirty_region)
 {
 	IDirect3DSurface9 *backbuffer = nullptr;
 	HRESULT hr;
@@ -674,8 +685,8 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDirect3DDevice9 *device,
 }
 
 static HRESULT STDMETHODCALLTYPE hook_present_ex(IDirect3DDevice9 *device,
-		CONST RECT *src_rect, CONST RECT *dst_rect,
-		HWND override_window, CONST RGNDATA *dirty_region, DWORD flags)
+	CONST RECT *src_rect, CONST RECT *dst_rect,
+	HWND override_window, CONST RGNDATA *dirty_region, DWORD flags)
 {
 	IDirect3DSurface9 *backbuffer = nullptr;
 	HRESULT hr;
@@ -688,7 +699,7 @@ static HRESULT STDMETHODCALLTYPE hook_present_ex(IDirect3DDevice9 *device,
 	unhook(&present_ex);
 	present_ex_t call = (present_ex_t)present_ex.call_addr;
 	hr = call(device, src_rect, dst_rect, override_window, dirty_region,
-			flags);
+		flags);
 	rehook(&present_ex);
 
 	present_end(device, backbuffer);
@@ -697,8 +708,8 @@ static HRESULT STDMETHODCALLTYPE hook_present_ex(IDirect3DDevice9 *device,
 }
 
 static HRESULT STDMETHODCALLTYPE hook_present_swap(IDirect3DSwapChain9 *swap,
-		CONST RECT *src_rect, CONST RECT *dst_rect,
-		HWND override_window, CONST RGNDATA *dirty_region, DWORD flags)
+	CONST RECT *src_rect, CONST RECT *dst_rect,
+	HWND override_window, CONST RGNDATA *dirty_region, DWORD flags)
 {
 	IDirect3DSurface9 *backbuffer = nullptr;
 	IDirect3DDevice9 *device = nullptr;
@@ -721,7 +732,7 @@ static HRESULT STDMETHODCALLTYPE hook_present_swap(IDirect3DSwapChain9 *swap,
 	unhook(&present_swap);
 	present_swap_t call = (present_swap_t)present_swap.call_addr;
 	hr = call(swap, src_rect, dst_rect, override_window, dirty_region,
-			flags);
+		flags);
 	rehook(&present_swap);
 
 	if (device)
@@ -731,7 +742,7 @@ static HRESULT STDMETHODCALLTYPE hook_present_swap(IDirect3DSwapChain9 *swap,
 }
 
 static HRESULT STDMETHODCALLTYPE hook_reset(IDirect3DDevice9 *device,
-		D3DPRESENT_PARAMETERS *params)
+	D3DPRESENT_PARAMETERS *params)
 {
 	HRESULT hr;
 
@@ -747,7 +758,7 @@ static HRESULT STDMETHODCALLTYPE hook_reset(IDirect3DDevice9 *device,
 }
 
 static HRESULT STDMETHODCALLTYPE hook_reset_ex(IDirect3DDevice9 *device,
-		D3DPRESENT_PARAMETERS *params, D3DDISPLAYMODEEX *dmex)
+	D3DPRESENT_PARAMETERS *params, D3DDISPLAYMODEEX *dmex)
 {
 	HRESULT hr;
 
@@ -769,14 +780,14 @@ static void setup_reset_hooks(IDirect3DDevice9 *device)
 	HRESULT hr;
 
 	hook_init(&reset, (void*)vtable[16], (void*)hook_reset,
-			"IDirect3DDevice9::Reset");
+		"IDirect3DDevice9::Reset");
 	rehook(&reset);
 
 	hr = device->QueryInterface(__uuidof(IDirect3DDevice9Ex),
-			(void**)&d3d9ex);
+		(void**)&d3d9ex);
 	if (SUCCEEDED(hr)) {
 		hook_init(&reset_ex, (void*)vtable[132], (void*)hook_reset_ex,
-				"IDirect3DDevice9Ex::ResetEx");
+			"IDirect3DDevice9Ex::ResetEx");
 		rehook(&reset_ex);
 
 		d3d9ex->Release();
@@ -785,12 +796,12 @@ static void setup_reset_hooks(IDirect3DDevice9 *device)
 	hooked_reset = true;
 }
 
-typedef HRESULT (WINAPI *d3d9create_ex_t)(UINT, IDirect3D9Ex**);
+typedef HRESULT(WINAPI *d3d9create_ex_t)(UINT, IDirect3D9Ex**);
 
 static bool manually_get_d3d9_addrs(HMODULE d3d9_module,
-		void **present_addr,
-		void **present_ex_addr,
-		void **present_swap_addr)
+	void **present_addr,
+	void **present_ex_addr,
+	void **present_swap_addr)
 {
 	d3d9create_ex_t create_ex;
 	D3DPRESENT_PARAMETERS pp;
@@ -802,7 +813,7 @@ static bool manually_get_d3d9_addrs(HMODULE d3d9_module,
 	hlog("D3D9 values invalid, manually obtaining");
 
 	create_ex = (d3d9create_ex_t)GetProcAddress(d3d9_module,
-			"Direct3DCreate9Ex");
+		"Direct3DCreate9Ex");
 	if (!create_ex) {
 		hlog("Failed to load Direct3DCreate9Ex");
 		return false;
@@ -813,17 +824,17 @@ static bool manually_get_d3d9_addrs(HMODULE d3d9_module,
 	}
 
 	memset(&pp, 0, sizeof(pp));
-	pp.Windowed                 = 1;
-	pp.SwapEffect               = D3DSWAPEFFECT_FLIP;
-	pp.BackBufferFormat         = D3DFMT_A8R8G8B8;
-	pp.BackBufferCount          = 1;
-	pp.hDeviceWindow            = (HWND)dummy_window;
-	pp.PresentationInterval     = D3DPRESENT_INTERVAL_IMMEDIATE;
+	pp.Windowed = 1;
+	pp.SwapEffect = D3DSWAPEFFECT_FLIP;
+	pp.BackBufferFormat = D3DFMT_A8R8G8B8;
+	pp.BackBufferCount = 1;
+	pp.hDeviceWindow = (HWND)dummy_window;
+	pp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	hr = d3d9ex->CreateDeviceEx(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
-			dummy_window,
-			D3DCREATE_HARDWARE_VERTEXPROCESSING |
-			D3DCREATE_NOWINDOWCHANGES, &pp, NULL, &device);
+		dummy_window,
+		D3DCREATE_HARDWARE_VERTEXPROCESSING |
+		D3DCREATE_NOWINDOWCHANGES, &pp, NULL, &device);
 	d3d9ex->Release();
 
 	if (SUCCEEDED(hr)) {
@@ -842,7 +853,8 @@ static bool manually_get_d3d9_addrs(HMODULE d3d9_module,
 		}
 
 		device->Release();
-	} else {
+	}
+	else {
 		hlog("Failed to create D3D9 device");
 		return false;
 	}
@@ -864,25 +876,26 @@ bool hook_d3d9(void)
 
 	d3d9_size = module_size(d3d9_module);
 
-	if (global_hook_info->offsets.d3d9.present      < d3d9_size &&
-	    global_hook_info->offsets.d3d9.present_ex   < d3d9_size &&
-	    global_hook_info->offsets.d3d9.present_swap < d3d9_size) {
+	if (global_hook_info->offsets.d3d9.present < d3d9_size &&
+		global_hook_info->offsets.d3d9.present_ex < d3d9_size &&
+		global_hook_info->offsets.d3d9.present_swap < d3d9_size) {
 
 		present_addr = get_offset_addr(d3d9_module,
-				global_hook_info->offsets.d3d9.present);
+			global_hook_info->offsets.d3d9.present);
 		present_ex_addr = get_offset_addr(d3d9_module,
-				global_hook_info->offsets.d3d9.present_ex);
+			global_hook_info->offsets.d3d9.present_ex);
 		present_swap_addr = get_offset_addr(d3d9_module,
-				global_hook_info->offsets.d3d9.present_swap);
-	} else {
+			global_hook_info->offsets.d3d9.present_swap);
+	}
+	else {
 		if (!dummy_window) {
 			return false;
 		}
 
 		if (!manually_get_d3d9_addrs(d3d9_module,
-					&present_addr,
-					&present_ex_addr,
-					&present_swap_addr)) {
+			&present_addr,
+			&present_ex_addr,
+			&present_swap_addr)) {
 			hlog("Failed to get D3D9 values");
 			return true;
 		}
@@ -895,20 +908,20 @@ bool hook_d3d9(void)
 
 	if (present_swap_addr) {
 		hook_init(&present_swap, present_swap_addr,
-				(void*)hook_present_swap,
-				"IDirect3DSwapChain9::Present");
+			(void*)hook_present_swap,
+			"IDirect3DSwapChain9::Present");
 		rehook(&present_swap);
 	}
 	if (present_ex_addr) {
 		hook_init(&present_ex, present_ex_addr,
-				(void*)hook_present_ex,
-				"IDirect3DDevice9Ex::PresentEx");
+			(void*)hook_present_ex,
+			"IDirect3DDevice9Ex::PresentEx");
 		rehook(&present_ex);
 	}
 	if (present_addr) {
 		hook_init(&present, present_addr,
-				(void*)hook_present,
-				"IDirect3DDevice9::Present");
+			(void*)hook_present,
+			"IDirect3DDevice9::Present");
 		rehook(&present);
 	}
 
