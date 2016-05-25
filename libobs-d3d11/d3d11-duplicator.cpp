@@ -185,6 +185,7 @@ EXPORT bool gs_duplicator_update_frame(gs_duplicator_t *d)
 	} else if (FAILED(hr)) {
 		blog(LOG_ERROR, "gs_duplicator_update_frame: Failed to update "
 		                "frame (%08lX)", hr);
+		Beep(500, 500);
 		return true;
 	}
 
@@ -194,6 +195,7 @@ EXPORT bool gs_duplicator_update_frame(gs_duplicator_t *d)
 		blog(LOG_ERROR, "gs_duplicator_update_frame: Failed to query "
 		               "ID3D11Texture2D (%08lX)", hr);
 		d->duplicator->ReleaseFrame();
+		Beep(500, 500);
 		return true;
 	}
 
