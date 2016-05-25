@@ -237,7 +237,7 @@ static bool create_video_stream(struct ffmpeg_data *data)
 	context->pix_fmt        = closest_format;
 	context->colorspace     = data->config.color_space;
 	context->color_range    = data->config.color_range;
-
+	context->thread_count = 4;
 	data->video->time_base = context->time_base;
 
 	if (data->output->oformat->flags & AVFMT_GLOBALHEADER)
