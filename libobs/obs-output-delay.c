@@ -46,7 +46,7 @@ static inline void process_delay_data(struct obs_output *output,
 		obs_output_actual_start(output);
 		break;
 	case DELAY_MSG_STOP:
-		obs_output_actual_stop(output, false);
+		obs_output_actual_stop(output, false, dd->ts);
 		break;
 	}
 }
