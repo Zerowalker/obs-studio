@@ -137,7 +137,7 @@ void obs_output_destroy(obs_output_t *output)
 		blog(LOG_INFO, "output '%s' destroyed", output->context.name);
 
 		if (output->valid && output->active)
-			obs_output_actual_stop(output, true, 0);
+			obs_output_actual_stop(output, true);
 		if (output->service)
 			output->service->output = NULL;
 
@@ -145,8 +145,6 @@ void obs_output_destroy(obs_output_t *output)
 
 		if (output->context.data)
 			output->info.destroy(output->context.data);
-
-		pthread_join(output->end_data_capture_thread, NULL);
 
 		if (output->video_encoder) {
 			obs_encoder_remove_output(output->video_encoder,
@@ -181,6 +179,8 @@ const char *obs_output_get_name(const obs_output_t *output)
 bool obs_output_actual_start(obs_output_t *output)
 {
 	bool success = false;
+
+	output->stopped = false;
 
 	if (output->context.data)
 		success = output->info.start(output->context.data);
@@ -220,11 +220,6 @@ bool obs_output_start(obs_output_t *output)
 
 		return false;
 	}
-}
-
-static inline bool data_active(struct obs_output *output)
-{
-	return os_atomic_load_bool(&output->data_active);
 }
 
 static void log_frame_info(struct obs_output *output)
@@ -277,14 +272,16 @@ static void log_frame_info(struct obs_output *output)
 				dropped, percentage_dropped);
 }
 
-void obs_output_actual_stop(obs_output_t *output, bool force, uint64_t ts)
+void obs_output_actual_stop(obs_output_t *output, bool force)
 {
+	output->stopped = true;
+
 	os_event_signal(output->reconnect_stop_event);
 	if (output->reconnect_thread_active)
 		pthread_join(output->reconnect_thread, NULL);
 
 	if (output->context.data)
-		output->info.stop(output->context.data, ts);
+		output->info.stop(output->context.data);
 
 	if (output->video)
 		log_frame_info(output);
@@ -311,14 +308,14 @@ void obs_output_stop(obs_output_t *output)
 	if (encoded && output->active_delay_ns) {
 		obs_output_delay_stop(output);
 	} else {
-		obs_output_actual_stop(output, false, os_gettime_ns());
+		obs_output_actual_stop(output, false);
 		do_output_signal(output, "stopping");
 	}
 }
 
 void obs_output_force_stop(obs_output_t *output)
 {
-	obs_output_actual_stop(output, true, 0);
+	obs_output_actual_stop(output, true);
 }
 
 bool obs_output_active(const obs_output_t *output)
@@ -882,7 +879,8 @@ static inline void send_interleaved(struct obs_output *output)
 		output->total_frames++;
 
 	da_erase(output->interleaved_packets, 0);
-	output->info.encoded_packet(output->context.data, &out);
+	if (!output->stopped)
+		output->info.encoded_packet(output->context.data, &out);
 	obs_free_encoder_packet(&out);
 }
 
@@ -1214,9 +1212,6 @@ static void interleave_packets(void *data, struct encoder_packet *packet)
 	struct encoder_packet out;
 	bool                  was_started;
 
-	if (!data_active(output))
-		return;
-
 	if (packet->type == OBS_ENCODER_AUDIO)
 		packet->track_idx = get_track_index(output, packet);
 
@@ -1268,13 +1263,11 @@ static void default_encoded_callback(void *param, struct encoder_packet *packet)
 {
 	struct obs_output *output = param;
 
-	if (!data_active(output))
-		return;
-
 	if (packet->type == OBS_ENCODER_AUDIO)
 		packet->track_idx = get_track_index(output, packet);
 
-	output->info.encoded_packet(output->context.data, packet);
+	if (!output->stopped)
+		output->info.encoded_packet(output->context.data, packet);
 	if (output->active_delay_ns)
 		obs_free_encoder_packet(packet);
 
@@ -1285,10 +1278,8 @@ static void default_encoded_callback(void *param, struct encoder_packet *packet)
 static void default_raw_video_callback(void *param, struct video_data *frame)
 {
 	struct obs_output *output = param;
-	if (!data_active(output))
-		return;
-
-	output->info.raw_video(output->context.data, frame);
+	if (!output->stopped)
+		output->info.raw_video(output->context.data, frame);
 	output->total_frames++;
 }
 
@@ -1296,10 +1287,8 @@ static void default_raw_audio_callback(void *param, size_t mix_idx,
 		struct audio_data *frames)
 {
 	struct obs_output *output = param;
-	if (!data_active(output))
-		return;
-
-	output->info.raw_audio(output->context.data, frames);
+	if (!output->stopped)
+		output->info.raw_audio(output->context.data, frames);
 
 	UNUSED_PARAMETER(mix_idx);
 }
@@ -1438,8 +1427,6 @@ bool obs_output_can_begin_data_capture(const obs_output_t *output,
 	if (output->delay_active) return true;
 	if (output->active) return false;
 
-	pthread_join(output->end_data_capture_thread, NULL);
-
 	convert_flags(output, flags, &encoded, &has_video, &has_audio,
 			&has_service);
 
@@ -1564,7 +1551,6 @@ bool obs_output_begin_data_capture(obs_output_t *output, uint32_t flags)
 				has_service))
 		return false;
 
-	os_atomic_set_bool(&output->data_active, true);
 	hook_data_capture(output, encoded, has_video, has_audio);
 
 	if (has_service)
@@ -1598,11 +1584,20 @@ static inline void stop_audio_encoders(obs_output_t *output,
 	}
 }
 
-static void *end_data_capture_thread(void *data)
+void obs_output_end_data_capture(obs_output_t *output)
 {
 	bool encoded, has_video, has_audio, has_service;
 	encoded_callback_t encoded_callback;
-	obs_output_t *output = data;
+
+	if (!obs_output_valid(output, "obs_output_end_data_capture"))
+		return;
+
+	if (output->delay_active) {
+		output->delay_capturing = false;
+		return;
+	}
+
+	if (!output->active) return;
 
 	convert_flags(output, 0, &encoded, &has_video, &has_audio,
 			&has_service);
@@ -1637,34 +1632,6 @@ static void *end_data_capture_thread(void *data)
 
 	do_output_signal(output, "deactivate");
 	output->active = false;
-
-	return NULL;
-}
-
-void obs_output_end_data_capture(obs_output_t *output)
-{
-	int ret;
-
-	if (!obs_output_valid(output, "obs_output_end_data_capture"))
-		return;
-
-	if (output->delay_active) {
-		output->delay_capturing = false;
-		return;
-	}
-
-	if (!output->active) return;
-
-	os_atomic_set_bool(&output->data_active, false);
-	pthread_join(output->end_data_capture_thread, NULL);
-
-	ret = pthread_create(&output->end_data_capture_thread, NULL,
-			end_data_capture_thread, output);
-	if (ret != 0) {
-		blog(LOG_WARNING, "Failed to create end_data_capture_thread "
-				"for output '%s'!", output->context.name);
-		end_data_capture_thread(output);
-	}
 }
 
 static void *reconnect_thread(void *param)

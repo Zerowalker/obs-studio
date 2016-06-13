@@ -63,7 +63,6 @@ struct rtmp_stream {
 
 	os_sem_t         *send_sem;
 	os_event_t       *stop_event;
-	uint64_t         stop_ts;
 
 	struct dstr      path, key;
 	struct dstr      username, password;
@@ -147,7 +146,6 @@ static void rtmp_stream_destroy(void *data)
 		if (stream->connecting)
 			pthread_join(stream->connect_thread, NULL);
 
-		stream->stop_ts = 0;
 		os_event_signal(stream->stop_event);
 
 		if (active(stream)) {
@@ -195,7 +193,7 @@ fail:
 	return NULL;
 }
 
-static void rtmp_stream_stop(void *data, uint64_t ts)
+static void rtmp_stream_stop(void *data)
 {
 	struct rtmp_stream *stream = data;
 
@@ -205,13 +203,11 @@ static void rtmp_stream_stop(void *data, uint64_t ts)
 	if (connecting(stream))
 		pthread_join(stream->connect_thread, NULL);
 
-	stream->stop_ts = ts / 1000ULL;
 	os_event_signal(stream->stop_event);
 
 	if (active(stream)) {
-		if (stream->stop_ts == 0)
-			os_sem_post(stream->send_sem);
-		//obs_output_end_data_capture(stream->output);
+		os_sem_post(stream->send_sem);
+		obs_output_end_data_capture(stream->output);
 	}
 }
 
@@ -353,19 +349,10 @@ static void *send_thread(void *data)
 	while (os_sem_wait(stream->send_sem) == 0) {
 		struct encoder_packet packet;
 
-		if (stopping(stream) && stream->stop_ts == 0) {
+		if (stopping(stream))
 			break;
-		}
-
 		if (!get_next_packet(stream, &packet))
 			continue;
-
-		if (stopping(stream)) {
-			if (packet.sys_dts_usec >= (int64_t)stream->stop_ts) {
-				obs_free_encoder_packet(&packet);
-				break;
-			}
-		}
 
 		if (!stream->sent_headers) {
 			if (!send_headers(stream)) {
@@ -399,7 +386,6 @@ static void *send_thread(void *data)
 
 	os_event_reset(stream->stop_event);
 	os_atomic_set_bool(&stream->active, false);
-	obs_output_end_data_capture(stream->output);
 	stream->sent_headers = false;
 	return NULL;
 }
@@ -839,7 +825,7 @@ static void rtmp_stream_data(void *data, struct encoder_packet *packet)
 	struct encoder_packet new_packet;
 	bool                  added_packet = false;
 
-	if (disconnected(stream) || !active(stream))
+	if (disconnected(stream))
 		return;
 
 	if (packet->type == OBS_ENCODER_VIDEO)

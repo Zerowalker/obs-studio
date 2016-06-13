@@ -19,7 +19,6 @@
 #include <obs-avc.h>
 #include <util/dstr.h>
 #include <util/pipe.h>
-#include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
 
 #include <libavformat/avformat.h>
@@ -34,12 +33,10 @@
 struct ffmpeg_muxer {
 	obs_output_t      *output;
 	os_process_pipe_t *pipe;
-	int64_t           stop_ts;
 	struct dstr       path;
 	bool              sent_headers;
-	volatile bool     active;
-	volatile bool     stopping;
-	volatile bool     capturing;
+	bool              active;
+	bool              capturing;
 };
 
 static const char *ffmpeg_mux_getname(void *unused)
@@ -74,21 +71,6 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 #else
 #define FFMPEG_MUX "ffmpeg-mux"
 #endif
-
-static inline bool capturing(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->capturing);
-}
-
-static inline bool stopping(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->stopping);
-}
-
-static inline bool active(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->active);
-}
 
 /* TODO: allow codecs other than h264 whenever we start using them */
 
@@ -241,8 +223,8 @@ static bool ffmpeg_mux_start(void *data)
 	}
 
 	/* write headers and start capture */
-	os_atomic_set_bool(&stream->active, true);
-	os_atomic_set_bool(&stream->capturing, true);
+	stream->active = true;
+	stream->capturing = true;
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing file '%s'...", stream->path.array);
@@ -253,34 +235,29 @@ static int deactivate(struct ffmpeg_muxer *stream)
 {
 	int ret = -1;
 
-	if (active(stream)) {
+	if (stream->active) {
 		ret = os_process_pipe_destroy(stream->pipe);
 		stream->pipe = NULL;
 
-		os_atomic_set_bool(&stream->active, false);
-		os_atomic_set_bool(&stream->sent_headers, false);
+		stream->active = false;
+		stream->sent_headers = false;
 
 		info("Output of file '%s' stopped", stream->path.array);
 	}
 
-	if (stopping(stream))
-		obs_output_end_data_capture(stream->output);
-
-	os_atomic_set_bool(&stream->stopping, false);
 	return ret;
 }
 
-static void ffmpeg_mux_stop(void *data, uint64_t ts)
+static void ffmpeg_mux_stop(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
-	if (capturing(stream)) {
-		stream->stop_ts = (int64_t)ts / 1000LL;
-		os_atomic_set_bool(&stream->stopping, true);
-		os_atomic_set_bool(&stream->capturing, false);
+	if (stream->capturing) {
+		obs_output_end_data_capture(stream->output);
+		stream->capturing = false;
 	}
 
-	//deactivate(stream);
+	deactivate(stream);
 }
 
 static void signal_failure(struct ffmpeg_muxer *stream)
@@ -294,7 +271,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 	}
 
 	obs_output_signal_stop(stream->output, code);
-	os_atomic_set_bool(&stream->capturing, false);
+	stream->capturing = false;
 }
 
 static bool write_packet(struct ffmpeg_muxer *stream,
@@ -381,7 +358,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
 	struct ffmpeg_muxer *stream = data;
 
-	if (!active(stream))
+	if (!stream->active)
 		return;
 
 	if (!stream->sent_headers) {
@@ -389,13 +366,6 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 			return;
 
 		stream->sent_headers = true;
-	}
-
-	if (stopping(stream)) {
-		if (packet->sys_dts_usec >= stream->stop_ts) {
-			deactivate(stream);
-			return;
-		}
 	}
 
 	write_packet(stream, packet);
