@@ -326,18 +326,6 @@ static bool create_audio_stream(struct ffmpeg_data *data)
 	context->sample_fmt  = data->acodec->sample_fmts ?
 		data->acodec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
 
-
-	if (data->acodec == avcodec_find_encoder_by_name("libopus")) {
-		context->sample_fmt = data->acodec->sample_fmts[1];
-	}
-	else if (data->acodec == avcodec_find_encoder_by_name("pcm_f32le")) {
-		context->sample_fmt = AV_SAMPLE_FMT_FLT;
-	}
-	else if (data->acodec == avcodec_find_encoder_by_name("flac")) {
-		context->sample_fmt = data->acodec->sample_fmts[1];
-	}
-
-
 	data->audio->time_base = context->time_base;
 
 	data->audio_samplerate = aoi.samples_per_sec;
